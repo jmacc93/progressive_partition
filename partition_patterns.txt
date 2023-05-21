@@ -1,0 +1,34 @@
+// Line comments in pattern files must start their line
+
+// The following line has the form `label:regex`
+lineComment://\s*([^\n]*)\n
+
+// Pattern labels are the recorded name of the patterns
+// In the following two lines, `newlines` and `spaces` are the pattern labels 
+newlines:\n+
+spaces:[^\n\S]+
+
+// The regex portion in the `label:regex` form is the regex used to make matches
+// In the following two lines, `;` and `,` are the regexes used, and represent single characters to be matched
+statementDelimiter:;
+parameterDelimiter:,
+
+leftParenthesis:\(
+rightParenthesis:\)
+
+leftCurlyBracket:\{
+rightCurlyBracket:\}
+
+leftSquareBracket:\[
+rightSquareBracket:\]
+
+string:"[^"]*"
+
+// If there is a capture group, then the capture from that group will be what is recorded for the partition
+// Everything before the first capture group is ignored
+// Note the following lines have non-capturing groups to avoid this
+floatNumber:[+-]?(?:\d*\.)?\d+f
+integerNumber:[+-]?\d+(?![\.\d])
+realNumber:[+-]?(?:\d*\.)?\d+
+
+symbol:[^\s"\.\(\)\{\}\[\]]+
