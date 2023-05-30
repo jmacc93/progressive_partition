@@ -2,68 +2,10 @@ module lexer;
 
 import std.stdio : File;
 
+import lib : assertString, writeStack, escapeQuotes;
+
 alias regextype = char; // Regex!R type R
 alias captype   = string; // regex Captures!T type T
-
-// afb5427c-90c0-5d4d-be1f-0df60c8b0bd8
-version(assert) {
-  
-  // dac29169-1377-5a71-8644-24ba20a77e90
-  T echo(T)(T value, uint line = __LINE__) {
-    import std.stdio;
-    writeln(line, " echo: ", value);
-    return value;
-  }
-
-  // ec7bc811-2cfd-57d0-a6ad-d62469e98913
-  enum bool writeAllStackLines = false;
-  void writeStack() {
-    import core.runtime;
-    import core.stdc.stdio;
-    
-    auto trace = defaultTraceHandler(null);
-    foreach(line; trace) {
-      if(writeAllStackLines || line.ptr[0] != '?')
-        printf("%.*s\n", cast(int)line.length, line.ptr);
-    }
-    defaultTraceDeallocator(trace);
-  }
-  
-  // e9d0e226-52b5-526a-b730-93f7d28f34bd
-  string assertString(string msg = "", ulong line = __LINE__)(string expr, string[] otherStrings...) {
-    import std.conv : to;
-    import std.array : replace;
-    string ret = "import std.stdio;
-    if(!(" ~ expr ~ ")){
-      writeln(\"=== Assertion failure, printing stack ===\");
-      writeStack();
-      writeln(\"Assertion failure on line " ~ line.to!string ~ " for " ~ expr.replace("\"", "\\\"") ~ "\");
-      writeln(\"Other values:\");\n";
-    foreach(string str; otherStrings)
-      ret ~= "writeln(\"" ~ str ~ " == \", " ~ str ~ ");\n";
-    return ret ~ "assert(false, \"" ~ msg ~ "\");\n}";
-  }
-  
-  // d3898d55-4ee3-5a07-ad1a-92f43a3659ab
-  void tracedAssert(bool res, string msg = "") {
-    if(res)
-      return;
-    writeStack();
-    assert(res, msg);
-  }
-  
-  
-}
-
-debug {
-
-  // 828d38d5-1906-5bc9-a60d-82d0133982a7
-  void dbgln(int line = __LINE__, string mod = __MODULE__, string fn = __PRETTY_FUNCTION__) {
-    import std.stdio;
-    writeln(line, " (", mod, ":  ", fn, ")");
-  }
-  
-}
 
 // 9e1aba66-1b03-595a-9d3f-0ac90b67d1a8
 
@@ -176,12 +118,11 @@ struct LabeledPatterns {
 unittest {
   auto nps = LabeledPatterns("aaa:bbb\nccc:ddd");
   
-  // tracedAssert(nps.nameArray == ["aaa", "ccc"]);
-  mixin(assertString!""("nps.nameArray == [\"aaa\", \"ccc\"]"));
+  mixin(assertString(q"(nps.nameArray == ["aaa", "ccc"])"));
   
   import std.regex : matchFirst;
-  mixin(assertString!""(q"(matchFirst("bbb", nps.systemRegex).whichPattern == 1)"));
-  mixin(assertString!""(q"(matchFirst("ddd", nps.systemRegex).whichPattern == 2)"));
+  mixin(assertString(q"(matchFirst("bbb", nps.systemRegex).whichPattern == 1)"));
+  mixin(assertString(q"(matchFirst("ddd", nps.systemRegex).whichPattern == 2)"));
 }
 
 ulong countNewlines(string str) {
@@ -335,7 +276,7 @@ unittest {
     "whitespace": "\\s+",
     "string": "\"[^\"]*\""
   ];
-  auto partitions = partitionString(LabeledPatterns(stringRegexMap), SourceString(" \"asdf\"  \"\" \"zxcv\""));
+  auto partitions = partitionString(LabeledPatterns(stringRegexMap), SourceString(q"[ "asdf"  "" "zxcv"]"));
   
   mixin(assertString!""(q"(partitions[0].label == "whitespace")"     , "partitions[0].label"      , "partitions"));
   mixin(assertString!""(q"(partitions[1].label == "string")"         , "partitions[1].label"      , "partitions"));
@@ -344,11 +285,11 @@ unittest {
   mixin(assertString!""(q"(partitions[4].label == "whitespace")"     , "partitions[4].label"      , "partitions"));
   mixin(assertString!""(q"(partitions[5].label == "string")"         , "partitions[5].label"      , "partitions"));
   
-  mixin(assertString!""(q"(partitions[0].partition == " ")"          , "partitions[0].partition"  , "partitions"));
+  mixin(assertString!""(q"(partitions[0].partition == q"[ ]")"       , "partitions[0].partition"  , "partitions"));
   mixin(assertString!""(q"(partitions[1].partition == q"["asdf"]")"  , "partitions[1].partition"  , "partitions"));
-  mixin(assertString!""(q"(partitions[2].partition == "  ")"         , "partitions[2].partition"  , "partitions"));
+  mixin(assertString!""(q"(partitions[2].partition == q"[  ]")"      , "partitions[2].partition"  , "partitions"));
   mixin(assertString!""(q"(partitions[3].partition == q"[""]")"      , "partitions[3].partition"  , "partitions"));
-  mixin(assertString!""(q"(partitions[4].partition == " ")"          , "partitions[4].partition"  , "partitions"));
+  mixin(assertString!""(q"(partitions[4].partition == q"[ ]")"       , "partitions[4].partition"  , "partitions"));
   mixin(assertString!""(q"(partitions[5].partition == q"["zxcv"]")"  , "partitions[5].partition"  , "partitions"));
   
   mixin(assertString!""(q"(partitions[0].stringIndex == 0)"          , "partitions[0].stringIndex", "partitions"));
