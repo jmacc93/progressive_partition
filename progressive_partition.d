@@ -1,4 +1,4 @@
-module lexer;
+module progressive_partition;
 
 import std.stdio : File;
 
