@@ -303,108 +303,76 @@ unittest {
   mixin(assertString!""(q"(partitions[5].stringIndex == 12)"         , "partitions[5].stringIndex", "partitions")); 
 }
 
-private string readEntireFile(File file) {
-  string retString;
-  foreach(ubyte[] chunk; file.byChunk(1024))
-    retString ~= cast(string)chunk;
-  return retString;
-}
-
-private string escapeHazardousCharacters(string stringToEscape) {
-  import std.array : replace;
-  import std.regex : ctRegex, replaceAll;
-  static auto escapablesRegex = ctRegex!"[\\\\\"]";
-  static auto newlineRegex = ctRegex!"\n";
-  return stringToEscape.replaceAll(escapablesRegex, "\\$&").replaceAll(newlineRegex, "\\n");
-}
-
-// ffe1b40e-e096-52d2-94d6-ef37b197f7d4
-int main(string[] args) {
+static if(isVersion!"progressivePartitionMain") {
+  import std.file : readText;
   import std.stdio : writeln, stdin, stdout, File;
+  import lib: readEntireFile, escapeJsonHazardousCharacters, appendToExceptions;
   
-  string patternFileName = "./patterns.txt";
-  string inputFileName   = "";
-  string outputFileName  = "";
-  bool outputLabels    = true;
-  bool outputLocations = true;
-  
-  import std.getopt; // https://devdocs.io/d/std_getopt for command line arguments
-  auto helpInformation = getopt(
-    args,
-    "patterns|p",
-        "Pattern file (defaults to ./patterns.txt)",
-        &patternFileName,
-    "input|i",
-        "Input file with string to partition (defaults to stdin)",
-        &inputFileName,
-    "output|o",
-        "Output json to file (defaults to stdout)",
-        &outputFileName,
-    "labels|l",
-        "Whether to include the matched pattern label for each partition (defaults to true)",
-        &outputLabels,
-    "locations|c",
-        "Whether to include origin index and line number for each partition (defaults to true)",
-        &outputLocations
-  );
-  
-  // called with --help or -h
-  if(helpInformation.helpWanted) {
-    defaultGetoptPrinter("Options:", helpInformation.options);
-    return 0;
-  }
-  
-  // read patterns
-  string patternSource;
-  try {
-    import std.file : readText;
-    patternSource = readText(patternFileName);
-  } catch(Exception exc) {
-    writeln("Exception while trying to read pattern file: ", exc.msg);
-    return 0;
-  }
-  
-  // read input file
-  File inputFile;
-  string inputSource;
-  if(inputFileName.length > 0) {
-    try {
-      inputFile = File(inputFileName, "r");
-    } catch(Exception exc) {
-      writeln("Exception while trying to open input file: ", exc.msg);
+  // ffe1b40e-e096-52d2-94d6-ef37b197f7d4
+  int main(string[] args) { try {
+    
+    string patternFileName = "./patterns.txt";
+    string inputFileName   = "";
+    string outputFileName  = "";
+    bool outputLabels    = true;
+    bool outputLocations = true;
+    
+    import std.getopt; // https://devdocs.io/d/std_getopt for command line arguments
+    auto helpInformation = getopt(
+      args,
+      "patterns|p",
+          "Pattern file (defaults to ./patterns.txt)",
+          &patternFileName,
+      "input|i",
+          "Input file with string to partition (defaults to stdin)",
+          &inputFileName,
+      "output|o",
+          "Output json to file (defaults to stdout)",
+          &outputFileName,
+      "labels|l",
+          "Whether to include the matched pattern label for each partition (defaults to true)",
+          &outputLabels,
+      "locations|c",
+          "Whether to include origin index and line number for each partition (defaults to true)",
+          &outputLocations
+    ).appendToExceptions("While getting commandline options");
+    
+    // called with --help or -h
+    if(helpInformation.helpWanted) {
+      defaultGetoptPrinter("Options:", helpInformation.options);
       return 0;
     }
-  } else {
-    inputFile = stdin;
-  }
-  try {
-    inputSource = readEntireFile(inputFile);
-  } catch(Exception exc) {
-    writeln("Exception while trying to read input file: ", exc.msg);
-    return 0;
-  }
-  inputFile.close();
-  
-  // open output file
-  File outputFile;
-  scope(exit) outputFile.close();
-  if(outputFileName.length > 0) {
-    try {
-      outputFile = File(outputFileName, "w");
-    } catch(Exception exc) {
-      writeln("Exception while trying to open output file: ", exc.msg);
-      return 0;
+    
+    // read patterns
+    string patternSource;
+    patternSource = readText(patternFileName).appendToExceptions("While reading pattern file");
+    
+    // read input file
+    File inputFile;
+    string inputSource;
+    if(inputFileName.length > 0)
+      inputFile = File(inputFileName, "r").appendToExceptions("While opening input file");
+    else
+      inputFile = stdin;
+    inputSource = readEntireFile(inputFile).appendToExceptions("While reading input file");
+    inputFile.close();
+    
+    // open output file
+    File outputFile;
+    if(outputFileName.length > 0)
+      outputFile = File(outputFileName, "w").appendToExceptions("While opening output file");
+    else
+      outputFile = stdout;
+    scope(exit) {
+      if(outputFile != stdout)
+        outputFile.close().appendToExceptions("While closing output file");
     }
-  } else {
-    outputFile = stdout;
-  }
-  
-  // partition
-  LabeledPartition[] labeledPartitions = partitionString(patternSource, inputSource);
-  
-  // write to file
-  try {
-    outputFile.write("[\n");
+    
+    // partition
+    LabeledPartition[] labeledPartitions = partitionString(patternSource, inputSource).appendToExceptions("While partitioning input");
+    
+    // write to file
+    outputFile.write("[\n").appendToExceptions("While writing to outputFile");
     for(uint i = 0; i < labeledPartitions.length; i++) {
       LabeledPartition labeledPartition = labeledPartitions[i];
       outputFile.write("  {\n");
@@ -425,10 +393,10 @@ int main(string[] args) {
         outputFile.write("\n");
     }
     outputFile.write("]");
-  } catch(Exception exc) {
-    writeln("Exception while trying to write to file: ", exc.msg);
+    
     return 0;
-  }
-  
-  return 1;
+  } catch(Exception exc) {
+    writeln(exc.msg);
+    return 1;
+  }}
 }
