@@ -2,7 +2,8 @@ module lexer;
 
 import std.stdio : File;
 
-import lib : assertString, writeStack, escapeQuotes;
+import lib : escapeQuotes, isVersion;
+version(assert) import lib : assertString, writeStack;
 
 alias regextype = char; // Regex!R type R
 alias captype   = string; // regex Captures!T type T
@@ -414,7 +415,7 @@ int main(string[] args) {
           "},\n"
         );
       }
-      outputFile.write("    \"partition\": \"", escapeHazardousCharacters(labeledPartition.partition), "\"");
+      outputFile.write("    \"partition\": \"", escapeJsonHazardousCharacters(labeledPartition.partition), "\"");
       outputFile.write("\n  }");
       if(i < labeledPartitions.length - 1)
         outputFile.write(",");
