@@ -47,6 +47,8 @@ struct SourceString {
 struct LabeledPartition {
   string label, partition;
   ulong stringIndex, lineNumber;
+  
+  alias value = partition; // for compatibility with range_tree_builder
 }
 
 // e4877f43-7a59-5510-8e50-5b4bbaa66b9a
