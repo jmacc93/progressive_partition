@@ -74,7 +74,7 @@ struct LabeledPatterns {
     import std.regex : ctRegex, Captures, regex, matchFirst;
     static immutable auto commaRegex = ctRegex!(":");
     if(stringForm.length == 0)
-      throw new Exception("Empty string used in constructor of LabeledPatterns");
+      throw new Exception("Empty string used in constructor of LabeledPatterns (input is probably an empty file)");
     
     // split lines like "name:pattern" and collect the results:
     
